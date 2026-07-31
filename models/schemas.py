@@ -50,18 +50,47 @@ class EtudeExtraite(BaseModel):
     """Sortie de l'agent IA — ce qu'il doit produire pour une étude."""
     nct_id: Optional[str] = None
     type_etude: TypeEtude
+    
+    # --- Rattachement molécule (nouveau) ---
     molecule_nom: str
     molecule_nom_code: Optional[str] = None
+    molecule_id_correspondance: Optional[int] = None   # ID trouvé si rattachement
+    action_molecule: ActionMolecule
+    candidats_evalues: Optional[List[int]] = None       # IDs proposés en pré-filtrage, pour audit
+    
     cible_therapeutique: Optional[str] = None
     mecanisme_action: Optional[str] = None
+    
+    # --- Design de l'essai ---
     phase: Optional[str] = None
     statut: Optional[str] = None
     taille_echantillon: Optional[int] = None
+    nb_bras: Optional[int] = None                        # nouveau : essai à 2, 3+ bras
     randomise: Optional[bool] = None
     double_aveugle: Optional[bool] = None
     comparateur_type: Optional[str] = None
+    comparateur_nom: Optional[str] = None                # nouveau : nom précis du comparateur (ex: "sémaglutide" pas juste "autre_molecule")
+    duree_semaines: Optional[int] = None                 # nouveau : durée de suivi, important pour comparer essais entre eux
+    
+    # --- Population ---
+    population_cible: Optional[str] = None               # nouveau : ex: "adultes diabète type 2, IMC 27-40"
+    ligne_traitement: Optional[str] = None                # nouveau : first-line, second-line, add-on
+    
+    # --- Résultats ---
     endpoint_primaire: Optional[str] = None
     endpoint_atteint: Optional[bool] = None
     p_value: Optional[float] = None
-    confiance_extraction: float = Field(..., ge=0.0, le=1.0)  # obligatoire, jamais d'extraction "à l'aveugle"
-    raisonnement: str  # l'agent doit toujours justifier
+    ic95_min: Optional[float] = None                     # nouveau, manquant jusqu'ici dans ce schéma
+    ic95_max: Optional[float] = None
+    endpoints_secondaires: Optional[List[str]] = None    # nouveau : liste, même sans détail chiffré
+    
+    # --- Sécurité ---
+    effets_indesirables_graves_pct: Optional[float] = None  # nouveau, manquait dans ce schéma
+    arrets_pour_effets_indesirables_pct: Optional[float] = None  # nouveau : signal fort de tolérance
+    
+    # --- Statut réglementaire (utile pour la probabilité de succès) ---
+    designation_speciale: Optional[str] = None            # nouveau : "fast_track", "breakthrough_therapy", etc. (FDA)
+    
+    # --- Méta / traçabilité ---
+    confiance_extraction: float = Field(..., ge=0.0, le=1.0)
+    raisonnement: str
