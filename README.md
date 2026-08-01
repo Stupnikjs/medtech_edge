@@ -60,7 +60,7 @@ clinique_ai/
 ### 1. Dépendances Python
 
 ```bash
-pip install biopython pydantic litellm python-dotenv --break-system-packages
+pip install biopython pydantic python-dotenv --break-system-packages
 ```
 
 ### 2. Clé API PubMed (NCBI)

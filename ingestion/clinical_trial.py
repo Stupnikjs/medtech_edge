@@ -5,7 +5,7 @@ Installation : pip install requests --break-system-packages
 
 import requests
 from typing import List
-from models.schemas import DocumentBrut, TypeSource
+from  import DocumentBrut, TypeSource
 
 BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 

@@ -55,8 +55,7 @@ class EtudeExtraite(BaseModel):
     molecule_nom: str
     molecule_nom_code: Optional[str] = None
     molecule_id_correspondance: Optional[int] = None   # ID trouvé si rattachement
-    action_molecule: ActionMolecule
-    candidats_evalues: Optional[List[int]] = None       # IDs proposés en pré-filtrage, pour audit
+    candidats_evalues: Optional[list[int]] = None       # IDs proposés en pré-filtrage, pour audit
     
     cible_therapeutique: Optional[str] = None
     mecanisme_action: Optional[str] = None
@@ -82,7 +81,7 @@ class EtudeExtraite(BaseModel):
     p_value: Optional[float] = None
     ic95_min: Optional[float] = None                     # nouveau, manquant jusqu'ici dans ce schéma
     ic95_max: Optional[float] = None
-    endpoints_secondaires: Optional[List[str]] = None    # nouveau : liste, même sans détail chiffré
+    endpoints_secondaires: Optional[list[str]] = None    # nouveau : liste, même sans détail chiffré
     
     # --- Sécurité ---
     effets_indesirables_graves_pct: Optional[float] = None  # nouveau, manquait dans ce schéma

@@ -1,4 +1,4 @@
-  """
+"""
 Parsing des publications PubMed.
 Utilise Bio.Entrez (biopython) pour interroger l'API et récupérer le XML,
 puis extrait le texte brut structuré.
@@ -16,7 +16,7 @@ from http.client import IncompleteRead
 
 from Bio import Entrez
 from typing import List, Optional
-from models.schemas import DocumentBrut, TypeSource
+from models import DocumentBrut, TypeSource
 from datetime import date
 
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Entrez.email/api_key : globals biopython → injectées dans l'URL des requêtes
 Entrez.email = "ton.email@example.com"
-Entrez.api_key = os.environ.get("NCBI_API_KEY")
+Entrez.api_key = "5c1e13c0507437fe1c4e8c2385d43c0e8508"
 
 # Rate limit NCBI : 3 req/s sans clé, 10 req/s avec
 DELAI_ENTRE_REQUETES = 0.11 if Entrez.api_key else 0.34
@@ -34,13 +34,14 @@ if not Entrez.api_key:
     logger.warning("NCBI_API_KEY absente — throttling à 3 req/s au lieu de 10.")
 
 
+
 def _appel_entrez(fonction, **kwargs):
-    """
-    Wrapper générique — requête + parsing XML.
-    fonction = Entrez.esearch ou Entrez.efetch.
-    handle = requête HTTP (urllib) → flux brut.
-    Entrez.read = parse XML → dict/list Python (DictionaryElement, ListElement).
-    """
+    """ 
+        Wrapper — requête + parsing XML.
+        fonction = Entrez.esearch | Entrez.efetch.
+        handle = requête HTTP (urllib) → flux brut.
+        Entrez.read = parse XML → dict/list Python (DictionaryElement, ListElement).
+    """    
     time.sleep(DELAI_ENTRE_REQUETES)
     try:
         handle = fonction(**kwargs)      # requête HTTP
@@ -107,7 +108,7 @@ def _extraire_abstract_structure(article: dict) -> str:
     return "\n".join(sections)
 
 
-def parser_article(pubmed_id: str) -> DocumentBrut | None:
+def fetch_article(pubmed_id: str) -> DocumentBrut | None:
     """
     efetch : contenu complet (vs esearch = IDs seulement).
     records["PubmedArticle"][0]["MedlineCitation"]["Article"] = hiérarchie XML.
@@ -139,12 +140,14 @@ def parser_article(pubmed_id: str) -> DocumentBrut | None:
         return None
 
 
+
+# Wrapper global 
 def pipeline_pubmed(mot_cle: str, max_resultats: int = 20) -> List[DocumentBrut]:
     """Recherche + parse."""
     ids = rechercher_pubmed(mot_cle, max_resultats)
     documents = []
     for pid in ids:
-        doc = parser_article(pid)
+        doc = fetch_article(pid)
         if doc:
             documents.append(doc)
     return documents
