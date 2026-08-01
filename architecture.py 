@@ -1,0 +1,31 @@
+clinical-api/
+│
+├── app/
+│   ├── api/
+│   ├── models/
+│   ├── services/
+│   ├── database/
+│   └── auth/
+│
+├── ingestion/
+│   ├── clinicaltrials/
+│   ├── ctis/
+│   ├── pubmed/
+│   ├── fda/
+│   └── ema/
+│
+├── parsers/
+│   ├── xml/
+│   ├── json/
+│   ├── pdf/
+│   └── html/
+│
+├── normalizers/
+│
+├── workers/
+│
+├── scoring/
+│
+├── tests/
+│
+└── docker/
