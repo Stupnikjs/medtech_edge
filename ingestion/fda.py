@@ -183,7 +183,7 @@ def main():
 
     records = fetch_all(args)
 
-    out_dir = Path(__file__).parent / "output"
+    out_dir = Path(__file__).parent.parent / "output"
     out_dir.mkdir(exist_ok=True)
 
     save_csv(records, out_dir / f"{args.output}.csv")

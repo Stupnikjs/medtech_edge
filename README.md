@@ -1,103 +1,58 @@
-# clinique_ai
+# [Nom à définir] — Agrégateur de données MedTech pour investisseurs retail
 
-Logiciel d'extraction d'informations depuis des documents scientifiques liés aux
-études cliniques dans l'industrie pharmaceutique, en phase de développement.
+## Pitch en une phrase
 
-## Objectif
+Un parser + agrégateur de données réglementaires et financières MedTech, qui transforme des sources publiques éparses et illisibles (FDA, brevets, filings SEC...) en signaux exploitables pour les investisseurs retail positionnés sur les small/mid cap US.
 
-Éclairer les investisseurs sur l'état actuel du pipeline clinique d'une biotech
-ou d'un labo pharma donné, à partir de publications et documents sources.
+## Problème
 
-## Premier challenge technique
+Les investisseurs retail qui s'intéressent aux small/mid cap MedTech américaines n'ont pas accès aux outils qu'utilisent les fonds spécialisés (terminaux Bloomberg, bases propriétaires type GlobalData/Evaluate MedTech). Les données existent pourtant en accès public mais sont :
+- dispersées sur plusieurs sources (FDA 510(k)/PMA, SEC EDGAR, USPTO, ClinicalTrials.gov, CMS...)
+- non structurées ou mal indexées (PDF, formulaires FDA, filings bruts)
+- publiées sans contexte financier (aucun lien direct entre un événement réglementaire et son impact sur le titre coté)
 
-Ingérer une publication ou un document — préalablement sélectionné par un
-humain pour éviter le spam — via un agent IA qui extrait les données
-pertinentes, puis les intègre dans la base de données.
+Résultat : un retail investor découvre une clairance FDA, un procès, ou un changement de remboursement CMS des jours ou semaines après le marché institutionnel, ou pas du tout.
 
-## Pipeline
+## Solution
 
-```
-PubMed / autres sources
-        │
-        ▼
-  DocumentBrut          (parsing brut : titre, abstract, date, source)
-        │
-        ▼
-  Agent d'extraction    (LLM → JSON structuré selon schéma Pydantic)
-        │
-        ▼
-  EtudeExtraite          (données validées : molécule, phase, endpoint,
-        │                 p-value, type d'étude, niveau de confiance...)
-        ▼
-  Base de données
-```
+Une plateforme qui :
+1. **Parse** les sources publiques pertinentes en continu
+2. **Structure** les événements par entreprise/ticker (FDA clearance, PMA, warning letter, recall, brevet, filing SEC, essai clinique...)
+3. **Agrège** ces événements dans un flux consultable, avec contexte (device class, indication, marché adressé)
+4. **Priorise** les small/mid cap où un seul événement réglementaire peut avoir un impact disproportionné sur le cours (contrairement aux large caps diversifiées type Medtronic/J&J)
 
-## Structure du projet
+## Sources de données ciblées
 
-```
-clinique_ai/
-├── models/
-│   ├── __init__.py
-│   └── schemas.py          # DocumentBrut, EtudeExtraite, TypeSource, TypeEtude
-├── pubmed_parser.py        # ingestion + parsing PubMed (Bio.Entrez)
-├── agent_extraction.py     # agent d'extraction LLM (via litellm)
-└── README.md
-```
+| Source | Données | Statut |
+|---|---|---|
+| FDA 510(k) | Clairances, device class, predicate devices | 🟡 Ébauche de parser en cours |
+| FDA PMA | Approbations pré-market, panels | À faire |
+| FDA Warning Letters / Recalls | Signaux négatifs, risque réglementaire | À faire |
+| SEC EDGAR (10-K, 10-Q, 8-K) | Filings financiers, guidance, litiges | À faire |
+| ClinicalTrials.gov | Essais en cours, phases, endpoints | À faire |
+| USPTO | Portefeuille brevets, expirations | À évaluer |
+| CMS | Codes de remboursement, coverage decisions | À évaluer (fort impact sur small caps) |
 
-## Schémas de données
+## Cible utilisateur
 
-- **`DocumentBrut`** — sortie du parsing, avant extraction IA (titre, abstract
-  brut, date, source, payload complet pour traçabilité).
-- **`EtudeExtraite`** — sortie de l'agent IA : molécule, cible thérapeutique,
-  mécanisme d'action, phase, statut, taille d'échantillon, randomisation,
-  double aveugle, endpoint primaire, p-value, `type_etude` (RCT,
-  observationnelle, méta-analyse, préclinique, autre), et un score de
-  confiance obligatoire (`confiance_extraction`) avec justification
-  (`raisonnement`).
+Investisseurs retail actifs (auto-directed), déjà familiers avec le stock picking, positionnés ou intéressés par le secteur MedTech small/mid cap US — profil "je fais mes propres recherches mais je n'ai pas les outils des pros".
 
-## Setup
+## Différenciation
 
-### 1. Dépendances Python
+- Focus **spécifiquement MedTech**, pas généraliste santé/biotech
+- Focus **small/mid cap**, segment sous-couvert par les outils existants (contrairement aux large caps très suivies)
+- Angle **réglementaire → marché**, pas juste agrégation de news
+- Conçu par quelqu'un qui a l'expérience technique (bots temps réel, parsing on-chain) pour livrer un produit réactif, pas un dashboard statique mis à jour une fois par semaine
 
-```bash
-pip install biopython pydantic python-dotenv --break-system-packages
-```
+## Questions ouvertes à trancher
 
-### 2. Clé API PubMed (NCBI)
-
-Gratuite, sans restriction gênante — sert juste à l'identification et
-augmente le rate limit de 3 à 10 req/s.
-
-```bash
-export NCBI_API_KEY="ta_clé_ncbi"
-```
-
-### 3. Agent d'extraction — modèle LLM local via Ollama
-
-Aucune clé API, aucun rate limit : tourne entièrement en local.
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-ollama serve &
-ollama pull qwen2.5:7b-instruct
-```
-
-Le modèle est configurable via variable d'environnement (`EXTRACTION_MODEL`),
-grâce à `litellm` qui découple le code du provider — un changement de modèle
-ne touche à rien d'autre dans le pipeline.
-
-### 4. Test du pipeline complet
-
-```bash
-python pubmed_parser.py       # test du parsing seul
-python agent_extraction.py    # test parsing + extraction IA
-```
+- Modèle de monétisation : abonnement SaaS, freemium, ou API ?
+- Alertes temps réel vs digest périodique ?
+- Scope MVP : FDA 510(k) seul suffit-il pour valider la valeur perçue avant d'ajouter SEC/CMS ?
+- Comment scorer/prioriser les événements pour éviter le bruit (un 510(k) mineur vs un recall majeur n'ont pas le même poids) ?
+- Couverture : univers de tickers fixe (liste MedTech small/mid cap US) ou découverte dynamique via mapping entreprise ↔ device manufacturer ?
 
 ## État actuel
 
-- [x] Parsing PubMed → `DocumentBrut` (avec gestion d'erreurs réseau,
-      throttling, abstract structuré par section, extraction de date)
-- [x] Schémas Pydantic de validation (`DocumentBrut`, `EtudeExtraite`)
-- [x] Agent d'extraction découplé du modèle LLM (`litellm`)
-- [ ] Insertion en base de données
-- [ ] Interface / restitution pour l'investisseur
+- Ébauche de parser FDA 510(k) démarrée.
+- Reste à définir : schéma de données commun pour agréger plusieurs sources hétérogènes, et le mapping entité réglementaire ↔ ticker coté.
