@@ -1,4 +1,4 @@
-# [Nom à définir] — Agrégateur de données MedTech pour investisseurs retail
+# [MedTech Edge] — Agrégateur de données MedTech pour investisseurs retail
 
 ## Pitch en une phrase
 
