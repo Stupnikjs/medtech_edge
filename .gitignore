@@ -3,4 +3,5 @@ __pycache__/**
 *.csv
 *.json
 /.venv
+medtech.db
 

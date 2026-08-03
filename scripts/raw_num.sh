@@ -1,0 +1,1 @@
+python -c "import sqlite3; conn = sqlite3.connect('medtech.db'); print(conn.execute('SELECT COUNT(*) FROM raw_clearance_records;').fetchall())"
