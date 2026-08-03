@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>medtech_edge — schema SQLite</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1216;
+    --panel: #161b21;
+    --border: #262d36;
+    --text: #d7dde3;
+    --dim: #7a8492;
+    --accent: #5fb3a3;
+    --accent-dim: #3d6e64;
+    --warn: #c98a4b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "SF Mono", "JetBrains Mono", Consolas, monospace;
+    margin: 0;
+    padding: 32px 40px 80px;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: 0.02em;
+  }
+  .subtitle {
+    color: var(--dim);
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+  .source {
+    color: var(--accent);
+  }
+  #diagram {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    overflow-x: auto;
+    margin-bottom: 40px;
+  }
+  h2 {
+    font-size: 15px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-top: 40px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 12px;
+  }
+  th {
+    text-align: left;
+    color: var(--dim);
+    font-weight: 500;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #1c222a;
+    vertical-align: top;
+  }
+  tr:hover td { background: #131820; }
+  .tbl-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 4px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .pk { background: var(--accent-dim); color: #bdf2e5; }
+  .fk { background: #2d3a52; color: #a9c2ea; }
+  .uk { background: #4a3a1f; color: var(--warn); }
+  .default { color: var(--dim); font-style: italic; }
+  code {
+    background: #1c222a;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+  .note {
+    color: var(--dim);
+    font-size: 12.5px;
+    margin: 6px 0 0;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<h1>medtech_edge — schema SQLite</h1>
+<div class="subtitle">Genere depuis <span class="source">storage/db.py::SCHEMA</span> — 9 tables, base raw ingestion (510k/pma/denovo/recall) + couche scoring/resolution</div>
+
+<div id="diagram">
+<pre class="mermaid">
+erDiagram
+    RAW_CLEARANCE_RECORDS {
+        int id PK
+        text source
+        text record_number
+        text device_name
+        text applicant_raw
+        text decision_date
+        text decision_code
+        text clearance_type
+        text product_code
+        text advisory_committee
+        text extra_json
+        text ingested_at
+    }
+    COMPANIES {
+        text company_id PK
+        text canonical_name
+        text ticker
+        text exchange
+        text market_cap_tier
+    }
+    COMPANY_ALIASES {
+        text company_id FK
+        text alias
+    }
+    DEVICES {
+        text device_id PK
+        text canonical_name
+        text product_code
+        text device_class
+        text advisory_committee
+        text company_id FK
+        text status
+    }
+    DEVICE_CLEARANCE_LINKS {
+        text device_id FK
+        int raw_record_id FK
+    }
+    DEVICE_SCORES {
+        int score_id PK
+        text device_id FK
+        text score_version
+        text components_json
+        real confidence
+        real composite_score
+        text computed_at
+    }
+    CLEARANCE_EVENTS {
+        text event_id PK
+        text device_id FK
+        text company_id FK
+        text event_type
+        text event_date
+        text headline
+        real score_delta
+        int source_raw_record_id FK
+    }
+    TICKER_SCORE_CONTRIBUTIONS {
+        text company_id FK
+        text device_id FK
+        real weight
+        int score_id FK
+        text computed_at
+    }
+    TICKER_SCORE_TREND {
+        text company_id FK
+        text as_of
+        real composite_score
+    }
+
+    COMPANIES ||--o{ COMPANY_ALIASES : "aliases"
+    COMPANIES ||--o{ DEVICES : "owns"
+    DEVICES ||--o{ DEVICE_CLEARANCE_LINKS : "linked_to"
+    RAW_CLEARANCE_RECORDS ||--o{ DEVICE_CLEARANCE_LINKS : "linked_from"
+    DEVICES ||--o{ DEVICE_SCORES : "scored"
+    DEVICES ||--o{ CLEARANCE_EVENTS : "device_event"
+    COMPANIES ||--o{ CLEARANCE_EVENTS : "company_event"
+    RAW_CLEARANCE_RECORDS ||--o{ CLEARANCE_EVENTS : "sourced_from"
+    COMPANIES ||--o{ TICKER_SCORE_CONTRIBUTIONS : "contributes"
+    DEVICES ||--o{ TICKER_SCORE_CONTRIBUTIONS : "contributes"
+    DEVICE_SCORES ||--o{ TICKER_SCORE_CONTRIBUTIONS : "used_in"
+    COMPANIES ||--o{ TICKER_SCORE_TREND : "trend_point"
+</pre>
+</div>
+
+<h2>raw_clearance_records</h2>
+<div class="note">Sortie brute des 4 parsers (510k/pma/denovo/recall). Dedup automatique via upsert sur la contrainte unique.</div>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>id</td><td>INTEGER</td><td><span class="badge pk">PK</span> AUTOINCREMENT</td><td></td></tr>
+<tr><td>source</td><td>TEXT</td><td>NOT NULL, <span class="badge uk">UK (composite)</span></td><td>openFDA_510k / _pma / _denovo / _recall</td></tr>
+<tr><td>record_number</td><td>TEXT</td><td>NOT NULL, <span class="badge uk">UK (composite)</span></td><td>k_number / pma_number / denovo_number / recall_number</td></tr>
+<tr><td>device_name</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>applicant_raw</td><td>TEXT</td><td>index: <code>idx_raw_applicant</code></td><td></td></tr>
+<tr><td>decision_date</td><td>TEXT</td><td>index: <code>idx_raw_decision_date</code></td><td>ISO yyyy-mm-dd</td></tr>
+<tr><td>decision_code</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>clearance_type</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>product_code</td><td>TEXT</td><td>index: <code>idx_raw_product_code</code></td><td></td></tr>
+<tr><td>advisory_committee</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>extra_json</td><td>TEXT</td><td></td><td>champs non-mappes, specifiques a l'endpoint</td></tr>
+<tr><td>ingested_at</td><td>TEXT</td><td>NOT NULL, <span class="default">DEFAULT datetime('now')</span></td><td></td></tr>
+</table>
+<div class="note"><span class="badge uk">UNIQUE (source, record_number)</span> — la cle d'upsert, une par record par endpoint.</div>
+
+<h2>companies</h2>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>company_id</td><td>TEXT</td><td><span class="badge pk">PK</span></td><td></td></tr>
+<tr><td>canonical_name</td><td>TEXT</td><td>NOT NULL</td><td></td></tr>
+<tr><td>ticker</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>exchange</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>market_cap_tier</td><td>TEXT</td><td>NOT NULL, <span class="default">DEFAULT 'private'</span></td><td></td></tr>
+</table>
+
+<h2>company_aliases</h2>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>company_id</td><td>TEXT</td><td>NOT NULL, <span class="badge fk">FK</span> → companies.company_id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+<tr><td>alias</td><td>TEXT</td><td>NOT NULL</td><td></td></tr>
+</table>
+<div class="note"><span class="badge uk">UNIQUE (company_id, alias)</span></div>
+
+<h2>devices</h2>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>device_id</td><td>TEXT</td><td><span class="badge pk">PK</span></td><td></td></tr>
+<tr><td>canonical_name</td><td>TEXT</td><td>NOT NULL</td><td></td></tr>
+<tr><td>product_code</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>device_class</td><td>TEXT</td><td></td><td>I / II / III</td></tr>
+<tr><td>advisory_committee</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>company_id</td><td>TEXT</td><td><span class="badge fk">FK</span> → companies.company_id <span class="badge">ON DELETE SET NULL</span></td><td></td></tr>
+<tr><td>status</td><td>TEXT</td><td>NOT NULL, <span class="default">DEFAULT 'active'</span></td><td></td></tr>
+</table>
+
+<h2>device_clearance_links</h2>
+<div class="note">Table de liaison device ↔ record brut (equivalent Device.clearance_history).</div>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>device_id</td><td>TEXT</td><td>NOT NULL, <span class="badge fk">FK</span> → devices.device_id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+<tr><td>raw_record_id</td><td>INTEGER</td><td>NOT NULL, <span class="badge fk">FK</span> → raw_clearance_records.id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+</table>
+<div class="note"><span class="badge uk">UNIQUE (device_id, raw_record_id)</span></div>
+
+<h2>device_scores</h2>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>score_id</td><td>INTEGER</td><td><span class="badge pk">PK</span> AUTOINCREMENT</td><td></td></tr>
+<tr><td>device_id</td><td>TEXT</td><td>NOT NULL, <span class="badge fk">FK</span> → devices.device_id <span class="badge">ON DELETE CASCADE</span>, index: <code>idx_device_scores_device</code></td><td></td></tr>
+<tr><td>score_version</td><td>TEXT</td><td>NOT NULL, <span class="default">DEFAULT 'v1.0'</span></td><td></td></tr>
+<tr><td>components_json</td><td>TEXT</td><td>NOT NULL</td><td>dict des composants du score</td></tr>
+<tr><td>confidence</td><td>REAL</td><td>NOT NULL, <span class="default">DEFAULT 1.0</span></td><td></td></tr>
+<tr><td>composite_score</td><td>REAL</td><td>NOT NULL</td><td></td></tr>
+<tr><td>computed_at</td><td>TEXT</td><td>NOT NULL, <span class="default">DEFAULT datetime('now')</span></td><td></td></tr>
+</table>
+
+<h2>clearance_events</h2>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>event_id</td><td>TEXT</td><td><span class="badge pk">PK</span></td><td></td></tr>
+<tr><td>device_id</td><td>TEXT</td><td><span class="badge fk">FK</span> → devices.device_id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+<tr><td>company_id</td><td>TEXT</td><td><span class="badge fk">FK</span> → companies.company_id <span class="badge">ON DELETE CASCADE</span>, index: <code>idx_events_company</code></td><td></td></tr>
+<tr><td>event_type</td><td>TEXT</td><td>NOT NULL</td><td>510k_cleared / pma_approved / denovo_granted / recall_issued</td></tr>
+<tr><td>event_date</td><td>TEXT</td><td>NOT NULL</td><td></td></tr>
+<tr><td>headline</td><td>TEXT</td><td></td><td></td></tr>
+<tr><td>score_delta</td><td>REAL</td><td>NOT NULL, <span class="default">DEFAULT 0.0</span></td><td></td></tr>
+<tr><td>source_raw_record_id</td><td>INTEGER</td><td><span class="badge fk">FK</span> → raw_clearance_records.id <span class="badge">ON DELETE SET NULL</span></td><td></td></tr>
+</table>
+
+<h2>ticker_score_contributions</h2>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>company_id</td><td>TEXT</td><td>NOT NULL, <span class="badge fk">FK</span> → companies.company_id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+<tr><td>device_id</td><td>TEXT</td><td>NOT NULL, <span class="badge fk">FK</span> → devices.device_id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+<tr><td>weight</td><td>REAL</td><td>NOT NULL</td><td></td></tr>
+<tr><td>score_id</td><td>INTEGER</td><td>NOT NULL, <span class="badge fk">FK</span> → device_scores.score_id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+<tr><td>computed_at</td><td>TEXT</td><td>NOT NULL, <span class="default">DEFAULT datetime('now')</span></td><td></td></tr>
+</table>
+<div class="note"><span class="badge uk">UNIQUE (company_id, device_id, score_id)</span></div>
+
+<h2>ticker_score_trend</h2>
+<table>
+<tr><th>colonne</th><th>type</th><th>contraintes</th><th>note</th></tr>
+<tr><td>company_id</td><td>TEXT</td><td>NOT NULL, <span class="badge fk">FK</span> → companies.company_id <span class="badge">ON DELETE CASCADE</span></td><td></td></tr>
+<tr><td>as_of</td><td>TEXT</td><td>NOT NULL</td><td></td></tr>
+<tr><td>composite_score</td><td>REAL</td><td>NOT NULL</td><td></td></tr>
+</table>
+<div class="note"><span class="badge uk">UNIQUE (company_id, as_of)</span></div>
+
+<div class="legend">
+  <span><span class="badge pk">PK</span> primary key</span>
+  <span><span class="badge fk">FK</span> foreign key</span>
+  <span><span class="badge uk">UK</span> unique constraint</span>
+  <span><span class="default">italique</span> = valeur par defaut SQLite</span>
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "dark", themeVariables: {
+    background: "#161b21",
+    primaryColor: "#1c222a",
+    primaryBorderColor: "#3d6e64",
+    primaryTextColor: "#d7dde3",
+    lineColor: "#5fb3a3",
+    tertiaryColor: "#161b21"
+  }});
+</script>
+</body>
+</html>

@@ -4,4 +4,6 @@ __pycache__/**
 *.json
 /.venv
 medtech.db
+medtech.db-shm
+medtech.db-wal
 

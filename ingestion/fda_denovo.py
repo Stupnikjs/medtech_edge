@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ingestion import openfda_client as client
+from ingestion import open_fda as client
 from storage import db
 
 BASE_URL = "https://api.fda.gov/device/denovo.json"
