@@ -45,8 +45,9 @@ PARSERS = [
 ]
 
 
-    
-def year_ranges(start_year: int, end_year: int) -> (str, str):
+
+T1 = type(str, str)
+def year_ranges(start_year: int, end_year: int) -> T1: # type: ignore
     """Genere des tuples (start_date, end_date) annee civile par annee civile.
     La derniere annee est bornee a aujourd'hui si elle correspond a l'annee en cours."""
     today = date.today()

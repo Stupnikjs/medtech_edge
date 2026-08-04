@@ -1,1 +1,0 @@
-python -c "import sqlite3; conn = sqlite3.connect('medtech.db'); print(conn.execute('SELECT DISTINCT applicant_raw FROM raw_clearance_recordS;').fetchall())"

@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS company_aliases (
 CREATE TABLE IF NOT EXISTS devices (
     device_id           TEXT PRIMARY KEY,
     canonical_name      TEXT NOT NULL,
+    normalized_name     TEXT NOT NULL,
     product_code        TEXT,
     device_class        TEXT,           -- I / II / III
     advisory_committee  TEXT,
@@ -248,11 +249,12 @@ def upsert_company(conn: sqlite3.Connection, company) -> None:
 def upsert_device(conn: sqlite3.Connection, device) -> None:
     conn.execute(
         """
-        INSERT INTO devices (device_id, canonical_name, product_code, device_class,
+        INSERT INTO devices (device_id, canonical_name, normalized_name, product_code, device_class,
                               advisory_committee, company_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (device_id) DO UPDATE SET
             canonical_name = excluded.canonical_name,
+            normalized_name = excluded.normalized_name,
             product_code = excluded.product_code,
             device_class = excluded.device_class,
             advisory_committee = excluded.advisory_committee,
@@ -262,6 +264,7 @@ def upsert_device(conn: sqlite3.Connection, device) -> None:
         (
             _attr(device, "device_id"),
             _attr(device, "canonical_name"),
+            _attr(device, "normalized_name"),
             _attr(device, "product_code"),
             _attr(device, "device_class"),
             _attr(device, "advisory_committee"),

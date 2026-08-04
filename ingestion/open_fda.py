@@ -56,6 +56,7 @@ def fetch_page(base_url, search, limit, skip, api_key):
     print(r.status_code)
 
     if r.status_code == 404:
+        print(f"  -> corps de la réponse 404 : {r.text[:300]}")
         return {"results": []}
 
     r.raise_for_status()

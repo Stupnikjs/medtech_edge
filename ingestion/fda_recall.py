@@ -36,7 +36,7 @@ from storage import db
 BASE_URL = "https://api.fda.gov/device/enforcement.json"
 SOURCE = "openFDA_recall"
 RECORD_NUMBER_FIELD = "recall_number"
-DATE_FIELD = "event_date_initiated"
+DATE_FIELD = "recall_initiation_date"
 
 FIELDS_OF_INTEREST = [
     "recall_number",
@@ -71,7 +71,7 @@ def extract_record(raw: dict) -> dict:
     record["device_class"] = openfda.get("device_class", "")
     # normalisation pour coller au schema commun (raw_clearance_records)
     record["applicant"] = record.get("recalling_firm", "")
-    record["decision_date"] = record.get("event_date_initiated", "")
+    record["decision_date"] = record.get(DATE_FIELD, "")
     record["decision_code"] = record.get("classification", "")
     record["clearance_type"] = "Recall"
     return record
