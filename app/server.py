@@ -434,6 +434,28 @@ def stats():
     return stats
 
 
+
+@app.get("/debug_devices_name")
+def companies_name():
+    conn = get_conn()
+
+    
+    rows = conn.execute(
+            """
+            SELECT
+                DISTINCT normalized_name
+            FROM devices
+            """,
+            
+    ).fetchall()
+    
+    conn.close()
+    
+    return rows_to_dict(rows)
+
+
+
+
 # ---------------------------------------------------------------------
 # Lancement :
 #
