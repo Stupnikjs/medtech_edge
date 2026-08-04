@@ -38,6 +38,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from ingestion import open_fda as client
 from storage import db
 
+
+## ne marche pas 
+## fichier csv a parser 
+
 BASE_URL = "https://api.fda.gov/device/denovo.json"
 SOURCE = "openFDA_denovo"
 RECORD_NUMBER_FIELD = "denovo_number"  # A VERIFIER (voir note en tete de fichier)
