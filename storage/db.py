@@ -243,7 +243,7 @@ def upsert_company(conn: sqlite3.Connection, company) -> None:
             "INSERT OR IGNORE INTO company_aliases (company_id, alias) VALUES (?, ?)",
             (_attr(company, "company_id"), alias),
         )
-    conn.commit()
+    # conn.commit()
 
 
 def upsert_device(conn: sqlite3.Connection, device) -> None:

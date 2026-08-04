@@ -435,8 +435,29 @@ def stats():
 
 
 
+
+@app.get("/public_companies")
+def public_companies_name():
+    conn = get_conn()
+
+    
+    rows = conn.execute(
+            """
+            SELECT
+                 *
+            FROM companies
+            """,
+            
+    ).fetchall()
+    
+    conn.close()
+    
+    return rows_to_dict(rows)
+
+
+
 @app.get("/debug_devices_name")
-def companies_name():
+def debug_devices_name():
     conn = get_conn()
 
     

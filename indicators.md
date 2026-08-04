@@ -1,6 +1,6 @@
 | Indicateur                         | Objectif                       |
 | ---------------------------------- | ------------------------------ |
-| Nombre de clearances               | Intensité d'innovation         |
+| Nombre de clearances par ans /5ans | Intensité d'innovation         |
 | Croissance YoY                     | Accélération ou ralentissement |
 | Temps depuis la dernière clearance | Activité récente               |
 | Nouveaux devices                   | Renouvellement du portefeuille |

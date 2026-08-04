@@ -1,5 +1,5 @@
 """
-resolve_companies.py - Normalise applicant_raw -> Company, avec ticker SEC si dispo.
+fill_companies.py - Normalise applicant_raw -> Company, avec ticker SEC si dispo.
 """
 
 import argparse
