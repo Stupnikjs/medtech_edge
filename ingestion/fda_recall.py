@@ -114,6 +114,10 @@ def main():
 
     out_dir = Path(__file__).parent.parent / "output"
     out_dir.mkdir(exist_ok=True)
+    """
+    raise ValueError("dict contains fields not in fieldnames: "
+    ValueError: dict contains fields not in fieldnames: 'decision_code', 'applicant', 'decision_date'
+    """
     csv_fields = FIELDS_OF_INTEREST + ["device_name", "device_class", "clearance_type"]
     client.save_csv(records, out_dir / f"{args.output}.csv", csv_fields)
     client.save_json(records, out_dir / f"{args.output}.json")
