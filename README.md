@@ -60,4 +60,5 @@ Investisseurs retail actifs (auto-directed), déjà familiers avec le stock pick
 
 
 uvicorn app.server:app --reload
+http://127.0.0.1:8000
 python -c "import sqlite3; c=sqlite3.connect('medtech.db'); c.execute('DROP TABLE IF EXISTS devices'); c.commit(); c.close()"

@@ -29,20 +29,20 @@ Usage :
     python fda_denovo_ingestion.py --applicant "Butterfly Network" --db ../medtech.sqlite3
 """
 
+
 import argparse
+from datetime import datetime
 import sys
 from pathlib import Path
+from typing import List, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ingestion import open_fda as client
-from storage import db
+from models.schemas import RawClearanceRecord 
+from storage.db import init_db, insert_raw_records
 
 
-## ne marche pas 
-## fichier csv a parser 
 
-BASE_URL = "https://api.fda.gov/device/denovo.json"
 SOURCE = "openFDA_denovo"
 RECORD_NUMBER_FIELD = "denovo_number"  # A VERIFIER (voir note en tete de fichier)
 
@@ -61,59 +61,78 @@ FIELDS_OF_INTEREST = [
     "decision_memo_url",
 ]
 
-
-def extract_record(raw: dict) -> dict:
-    record = {field: raw.get(field, "") for field in FIELDS_OF_INTEREST}
-    record["advisory_committee"] = record.get("review_advisory_committee", "")
-    record["clearance_type"] = "De Novo"
-    return record
-
-
-def build_search_query(args: argparse.Namespace) -> str | None:
-    clauses = []
-    if args.applicant:
-        clauses.append(f'applicant:"{args.applicant}"')
-    if args.product_code:
-        clauses.append(f'product_code:"{args.product_code}"')
-    if args.advisory_committee:
-        clauses.append(f'review_advisory_committee:"{args.advisory_committee}"')
-
-    date_clause = client.build_date_clause(args.start_date, args.end_date)
-    if date_clause:
-        clauses.append(date_clause)
-
-    return "+AND+".join(clauses) if clauses else None
+def parse_date(date_str: str) -> Optional[datetime.date]:
+    """Convertit une chaîne au format MM/DD/YYYY en objet date."""
+    if not date_str or not date_str.strip():
+        return None
+    try:
+        return datetime.strptime(date_str.strip(), "%m/%d/%Y").date()
+    except ValueError:
+        return None
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Ingestion openFDA Device De Novo")
-    parser.add_argument("--start-date", help="Date de début (YYYY-MM-DD)")
-    parser.add_argument("--end-date", help="Date de fin (YYYY-MM-DD)")
-    parser.add_argument("--applicant", help="Nom de l'entreprise soumissionnaire")
-    parser.add_argument("--product-code", help="Code produit FDA")
-    parser.add_argument("--advisory-committee", help="Code comité consultatif (ex: cv, ho, ne)")
-    parser.add_argument("--limit", type=int, default=1000, help="Nombre max d'enregistrements (0 = tout, prudence)")
-    parser.add_argument("--api-key", default=None, help="Clé API openFDA (optionnelle)")
-    parser.add_argument("--output", default="fda_denovo_export", help="Nom de fichier de sortie (sans extension)")
-    parser.add_argument("--db", default=None, help="Chemin sqlite pour écrire aussi les records (optionnel)")
-    args = parser.parse_args()
+def parse_line_to_raw_record(
+    line: str, source: str = "openFDA_510k"
+) -> Optional[RawClearanceRecord]:
+    """Transforme une ligne délimitée par '|' en une instance de RawClearanceRecord."""
+    fields = [f.strip() for f in line.split("|")]
 
-    search = build_search_query(args)
-    records = client.fetch_all(BASE_URL, search, args.limit, args.api_key, extract_record)
+    # Vérification minimale du nombre de colonnes (au moins 22 colonnes)
+    if len(fields) < 22:
+        return None
 
-    out_dir = Path(__file__).parent.parent / "output"
-    out_dir.mkdir(exist_ok=True)
-    csv_fields = FIELDS_OF_INTEREST + ["advisory_committee", "clearance_type"]
-    client.save_csv(records, out_dir / f"{args.output}.csv", csv_fields)
-    client.save_json(records, out_dir / f"{args.output}.json")
+    # Extraction sécurisée des dates et champs
+    decision_date = parse_date(fields[11])  # DECISIONDATE (index 11)
 
-    if args.db:
-        conn = db.init_db(args.db)
-        normalized = [{**r, "applicant_raw": r.get("applicant", "")} for r in records]
-        n = db.insert_raw_records(conn, normalized, SOURCE, RECORD_NUMBER_FIELD)
-        print(f"SQLite : {n} records upsertes dans {args.db} (source={SOURCE})")
-        conn.close()
+    return RawClearanceRecord(
+        k_number=fields[0],  # KNUMBER
+        device_name=fields[21],  # DEVICENAME
+        applicant_raw=fields[1],  # APPLICANT
+        decision_date=decision_date,
+        decision_code=fields[12],  # DECISION
+        clearance_type=fields[18],  # TYPE
+        product_code=fields[14],  # PRODUCTCODE
+        advisory_committee=fields[16],  # CLASSADVISECOMM
+        source=source,
+    )
 
 
+def process_raw_data(
+    raw_data: str, source: str = "openFDA_510k"
+) -> List[RawClearanceRecord]:
+    """Parse l'ensemble du bloc de texte et retourne une liste d'objets RawClearanceRecord."""
+    records = []
+    lines = raw_data.strip().splitlines()
+
+    # Si la première ligne contient les en-têtes (KNUMBER|APPLICANT|...), on la saute
+    if lines and lines[0].startswith("KNUMBER"):
+        lines = lines[1:]
+
+    for line in lines:
+        if line.strip():
+            record = parse_line_to_raw_record(line, source=source)
+            if record:
+                records.append(record)
+
+    return records
+
+
+# ==========================================
+# EXÉCUTION & TEST SUR VOS DONNÉES
+# ==========================================
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Ingestion openFDA Device PMA")
+    parser.add_argument("--db", default=None, help="Chemin sqlite pour écrire aussi les records (optionnel)")
+    parser.add_argument("--file", default=None, required=True, help="path to csv denovo files")
+    donnees_test = """KNUMBER|APPLICANT|CONTACT|STREET1|STREET2|CITY|STATE|COUNTRY_CODE|ZIP|POSTAL_CODE|DATERECEIVED|DECISIONDATE|DECISION|REVIEWADVISECOMM|PRODUCTCODE|STATEORSUMM|CLASSADVISECOMM|SSPINDICATOR|TYPE|THIRDPARTY|EXPEDITEDREVIEW|DEVICENAME
+DEN000001|Ohmeda Medical|DANIEL  KOSEDNAR|P.O. Box 7550||Madison|WI|US|53707|53707|01/07/2000|01/11/2000|DENG|AN|MRN||AN||Post-NSE|N||OHMEDA INOVENT DELIVERY SYSTEM
+K000001|Boston Scientific Scimed, Inc.|RON  BENNETT|5905 Nathan Ln.||Plymouth|MN|US|55442|55442|01/03/2000|06/05/2000|SESE|SU|JCT|Summary|SU||Traditional|N||WALLGRAFT TRACHEOBRONCHIAL ENDOPROSTHESIS AND UNISTEP DELIVERY SYSTEM"""
+    args = parser.parse_args()
+    # Traitement des données
+    liste_records = process_raw_data(donnees_test, source="openFDA_510k")
+    if args.db:
+        conn = init_db(args.db)
+        # Affichage des résultats
+        print(f"Nombre d'enregistrements créés : {len(liste_records)}\n")
+        insert_raw_records(conn=conn, records=liste_records, source=SOURCE, record_number_field=RECORD_NUMBER_FIELD)
+    

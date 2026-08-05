@@ -413,7 +413,7 @@ def stats():
 
     stats = {
         "companies": conn.execute(
-            "SELECT COUNT(*) FROM companies"
+            "SELECT COUNT(company_id) FROM companies"
         ).fetchone()[0],
         "devices": conn.execute(
             "SELECT COUNT(*) FROM devices"
@@ -466,6 +466,26 @@ def debug_devices_name():
             SELECT
                 DISTINCT normalized_name
             FROM devices
+            """,
+            
+    ).fetchall()
+    
+    conn.close()
+    
+    return rows_to_dict(rows)
+
+
+
+@app.get("/debug_companies_name")
+def debug_devices_name():
+    conn = get_conn()
+
+    
+    rows = conn.execute(
+            """
+            SELECT
+                DISTINCT normalized_name
+            FROM companies
             """,
             
     ).fetchall()

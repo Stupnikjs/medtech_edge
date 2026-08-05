@@ -52,6 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_raw_decision_date ON raw_clearance_records(decisi
 CREATE TABLE IF NOT EXISTS companies (
     company_id      TEXT PRIMARY KEY,
     canonical_name  TEXT NOT NULL,
+    normalized_name TEXT NOT NULL,
     ticker          TEXT,
     exchange        TEXT,
     market_cap_tier TEXT NOT NULL DEFAULT 'private'
@@ -220,30 +221,58 @@ def _attr(obj, name, default=None):
 
 
 def upsert_company(conn: sqlite3.Connection, company) -> None:
+  # Extraction sécurisée des attributs scalaires
+    company_id = str(_attr(company, "company_id"))
+    canonical_name = str(_attr(company, "canonical_name"))
+    normalized_name = str(_attr(company, "normalized_name"))
+    
+    ticker = _attr(company, "ticker")
+    if isinstance(ticker, (tuple, list)):
+        ticker = ticker[0] if ticker else None
+    ticker = str(ticker) if ticker is not None else None
+
+    exchange = _attr(company, "exchange")
+    if isinstance(exchange, (tuple, list)):
+        exchange = exchange[0] if exchange else None
+    exchange = str(exchange) if exchange is not None else None
+
+    market_cap_tier = str(_attr(company, "market_cap_tier", "private"))
+
     conn.execute(
         """
-        INSERT INTO companies (company_id, canonical_name, ticker, exchange, market_cap_tier)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO companies (company_id, canonical_name, normalized_name, ticker, exchange, market_cap_tier)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT (company_id) DO UPDATE SET
             canonical_name = excluded.canonical_name,
+            normalized_name = excluded.normalized_name,
             ticker = excluded.ticker,
             exchange = excluded.exchange,
             market_cap_tier = excluded.market_cap_tier
         """,
         (
-            _attr(company, "company_id"),
-            _attr(company, "canonical_name"),
-            _attr(company, "ticker"),
-            _attr(company, "exchange"),
-            _attr(company, "market_cap_tier", "private"),
+            company_id,
+            canonical_name,
+            normalized_name,
+            ticker,
+            exchange,
+            market_cap_tier,
         ),
     )
-    for alias in _attr(company, "known_aliases", []) or []:
-        conn.execute(
-            "INSERT OR IGNORE INTO company_aliases (company_id, alias) VALUES (?, ?)",
-            (_attr(company, "company_id"), alias),
-        )
-    # conn.commit()
+
+    # Nettoyage et sécurisation des alias
+    raw_aliases = _attr(company, "known_aliases", []) or []
+    for alias in raw_aliases:
+        # Si un alias est un tuple/liste par erreur, on prend son premier élément
+        if isinstance(alias, (tuple, list)):
+            alias = alias[0] if alias else None
+        
+        if alias:
+            conn.execute(
+                "INSERT OR IGNORE INTO company_aliases (company_id, alias) VALUES (?, ?)",
+                (company_id, str(alias)),
+            )
+
+    conn.commit()
 
 def upsert_alias(conn: sqlite3.Connection, company_id: str, alias: str) -> None:
     """Enregistre un alias pour une company existante (idempotent : ON CONFLICT
