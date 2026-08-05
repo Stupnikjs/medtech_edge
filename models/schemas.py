@@ -28,23 +28,7 @@ class RawClearanceRecord:
         self.advisory_committee = advisory_committee
         self.source = source                          # "openFDA_510k" / "openFDA_pma" / "openFDA_denovo"
         self.ingested_at = datetime.now()
-    def to_dict(self) -> dict:
-        """Convertit le record en dictionnaire compatible avec insert_raw_records."""
-        d = {
-            "k_number": self.k_number,
-            "device_name": self.device_name,
-            "applicant_raw": self.applicant_raw,
-            # Conversion de l'objet date en chaîne ISO (YYYY-MM-DD) pour SQLite
-            "decision_date": self.decision_date.isoformat() if self.decision_date else None,
-            "decision_code": self.decision_code,
-            "clearance_type": self.clearance_type,
-            "product_code": self.product_code,
-            "advisory_committee": self.advisory_committee,
-            "source": self.source,
-        }
-        # Fusionne les champs additionnels éventuels
-        d.update(self.extra)
-        return d
+    
 
 # ---------------------------------------------------------------------------
 # 2. Device - entite normalisee, dedupliquee
