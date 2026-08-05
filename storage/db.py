@@ -245,6 +245,18 @@ def upsert_company(conn: sqlite3.Connection, company) -> None:
         )
     # conn.commit()
 
+def upsert_alias(conn: sqlite3.Connection, company_id: str, alias: str) -> None:
+    """Enregistre un alias pour une company existante (idempotent : ON CONFLICT
+    ignore si l'alias est déjà connu pour ce company_id). C'est ce qui permet
+    à load_existing_companies() de retrouver la company en match exact la
+    prochaine fois que cette variante de nom apparaît dans applicant_raw."""
+    if not alias:
+        return
+    conn.execute(
+        "INSERT OR IGNORE INTO company_aliases (company_id, alias) VALUES (?, ?)",
+        (company_id, alias),
+    )
+    conn.commit()
 
 def upsert_device(conn: sqlite3.Connection, device) -> None:
     conn.execute(
