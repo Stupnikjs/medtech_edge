@@ -60,6 +60,9 @@ FIELDS_OF_INTEREST = [
     "event_date_terminated",
     "event_date_posted",
     "report_date",
+    "decision_code", 
+    "applicant", 
+    "decision_date"
 ]
 
 
