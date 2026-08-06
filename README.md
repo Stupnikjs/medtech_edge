@@ -58,7 +58,6 @@ Investisseurs retail actifs (auto-directed), déjà familiers avec le stock pick
 - Reste à définir : schéma de données commun pour agréger plusieurs sources hétérogènes, et le mapping entité réglementaire ↔ ticker coté.
 
 
-
+python ingestion/fda_pma.py --start-date 2020-01-01 --end-date 2026-08-01 --limit 0
 uvicorn app.server:app --reload
 http://127.0.0.1:8000
-python -c "import sqlite3; c=sqlite3.connect('medtech.db'); c.execute('DROP TABLE IF EXISTS devices'); c.commit(); c.close()"

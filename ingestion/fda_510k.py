@@ -49,6 +49,7 @@ FIELDS_OF_INTEREST = [
 
 
 def extract_record(raw: dict) -> dict:
+    raw["clearance_type"] = "510k"
     return {field: raw.get(field, "") for field in FIELDS_OF_INTEREST}
 
 

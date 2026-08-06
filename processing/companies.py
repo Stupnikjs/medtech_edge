@@ -42,13 +42,16 @@ for t in fda_ingestion_type:
             frames.append(pd.read_json(path))
 
 df = pd.concat(frames, ignore_index=True)
-
+print(df.groupby(df['applicant'].isna())['clearance_type'].value_counts())
 df['applicant'] = df['applicant'].str.upper()
 
-suite_a_supprimer = r'(?:LTD|LLC|INC|CO|SE|B.V|A\S|US|BHD|PTY|SDN)\.?\s*'
+suffixes = r'\b(?:LTD|LLC|INC|CO|SE|BV|SA|US|BHD|PTY|SDN|GMBH|CORP|PLC|AG|NV)\.?\b'
+df['applicant'] = df['applicant'].str.replace(suffixes, '', regex=True)
+df['applicant'] = df['applicant'].str.strip(' .,')
 
-df['applicant'] = df['applicant'].str.replace(suite_a_supprimer, '', regex=True)
-df['applicant'] = df['applicant'].str.strip(" .")
-df['applicant'] = df['applicant'].str.strip(" ,")
 
 print(df['applicant'].value_counts().sort_index())
+
+
+## grouper les noms qui on des similarité 
+## systeme de token 

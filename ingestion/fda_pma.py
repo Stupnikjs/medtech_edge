@@ -63,6 +63,7 @@ def extract_record(raw: dict) -> dict:
     record["clearance_type"] = record.get("supplement_type") or "Original PMA"
     # device_class est niche sous openfda, pas a la racine du record
     record["device_class"] = raw.get("openfda", {}).get("device_class", "")
+    record["clearance_type"] = "Pma"
     return record
 
 
