@@ -30,7 +30,9 @@ from storage import db
 
 BASE_URL = "https://api.fda.gov/device/pma.json"
 SOURCE = "openFDA_pma"
+SOURCE_FOLDER="pma"
 RECORD_NUMBER_FIELD = "pma_number"
+DATE_FIELD= "decision_date"
 
 FIELDS_OF_INTEREST = [
     "pma_number",
@@ -92,18 +94,17 @@ def main():
     parser.add_argument("--decision-code", help='Code decision (ex: "APPR")')
     parser.add_argument("--limit", type=int, default=1000, help="Nombre max d'enregistrements (0 = tout, prudence)")
     parser.add_argument("--api-key", default=None, help="Clé API openFDA (optionnelle)")
-    parser.add_argument("--output", default="fda_pma_export", help="Nom de fichier de sortie (sans extension)")
     parser.add_argument("--db", default=None, help="Chemin sqlite pour écrire aussi les records (optionnel)")
     args = parser.parse_args()
 
     search = build_search_query(args)
     records = client.fetch_all(BASE_URL, search, args.limit, args.api_key, extract_record)
 
-    out_dir = Path(__file__).parent.parent / "output"
-    out_dir.mkdir(exist_ok=True)
-    csv_fields = FIELDS_OF_INTEREST + ["device_name", "clearance_type", "device_class"]
-    client.save_csv(records, out_dir / f"{args.output}.csv", csv_fields)
-    client.save_json(records, out_dir / f"{args.output}.json")
+    out_root = Path(__file__).parent.parent / "data" / "raw" / SOURCE_FOLDER
+    counts = client.write_partitioned(records, out_root, "records", DATE_FIELD)
+    for year, n in counts.items():
+        print(f"  {year}: {n} records -> {out_root / year}")
+    print(f"Total : {sum(counts.values())} records écrits dans {out_root}/<year>/")
 
     if args.db:
         conn = db.init_db(args.db)

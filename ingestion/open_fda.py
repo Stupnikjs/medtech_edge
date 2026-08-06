@@ -20,6 +20,7 @@ import json
 import time
 import requests
 from pathlib import Path
+from collections import defaultdict
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -118,6 +119,35 @@ def fetch_all(base_url: str, search: str | None, limit: int, api_key: str | None
             break
 
     return results
+
+def year_of(record: dict, date_field: str) -> str:
+    """Extrait l'année (YYYY) d'un record depuis date_field. Retourne
+    'unknown' si la date est absente ou mal formée, pour ne jamais perdre
+    un record silencieusement à cause d'un champ vide."""
+    value = record.get(date_field) or record.get("decision_date") or ""
+    return value[:4] if len(value) >= 4 and value[:4].isdigit() else "unknown"
+
+
+def partition_by_year(records: list[dict], date_field: str) -> dict[str, list[dict]]:
+    """Regroupe les records par année pour l'écriture en dossiers partitionnés."""
+    buckets: dict[str, list[dict]] = defaultdict(list)
+    for r in records:
+        buckets[year_of(r, date_field)].append(r)
+    return buckets
+
+
+
+def write_partitioned(records: list[dict], out_root: Path, filename: str, date_field:str) -> dict[str, int]:
+    """Écrit les records en output/<source>/<year>/filename.json, un dossier par année."""
+    partitioned = partition_by_year(records, date_field)
+    counts = {}
+    for year, year_records in sorted(partitioned.items()):
+        
+        year_dir = out_root / year
+        year_dir.mkdir(parents=True, exist_ok=True)
+        save_json(year_records, year_dir / f"{filename}.json")
+        counts[year] = len(year_records)
+    return counts
 
 
 def save_csv(records: list[dict], path: Path, fieldnames: list[str]) -> None:

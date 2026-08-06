@@ -18,6 +18,11 @@ prod avec :
     curl "https://api.fda.gov/device/enforcement.json?limit=1"
 device_name/device_class sont niches sous `openfda.*` comme pour le pma.
 
+Sortie partitionnée par année (comme le script pma) : output/recall/<year>/*.json,
+*.csv. Un record sans date exploitable atterrit dans output/recall/unknown/.
+Ça facilite les runs incrementaux (retraiter une seule année) et evite un
+fichier monolithique quand --limit 0 ramene plusieurs annees d'un coup.
+
 Usage :
     python fda_recall.py --start-date 2024-01-01 --end-date 2026-08-01
     python fda_recall.py --recalling-firm "Medtronic" --db ../medtech.db
@@ -26,17 +31,20 @@ Usage :
 
 import argparse
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ingestion import open_fda as client
+
 from storage import db
 
 BASE_URL = "https://api.fda.gov/device/enforcement.json"
 SOURCE = "openFDA_recall"
+SOURCE_FOLDER = "recall"  # nom de dossier de sortie, décorrélé du nom de SOURCE en DB
 RECORD_NUMBER_FIELD = "recall_number"
-DATE_FIELD = "recall_initiation_date"
+DATE_FIELD = "report_date"
 
 FIELDS_OF_INTEREST = [
     "recall_number",
@@ -60,9 +68,9 @@ FIELDS_OF_INTEREST = [
     "event_date_terminated",
     "event_date_posted",
     "report_date",
-    "decision_code", 
-    "applicant", 
-    "decision_date"
+    "decision_code",
+    "applicant",
+    "decision_date",
 ]
 
 
@@ -98,6 +106,7 @@ def build_search_query(args: argparse.Namespace) -> str | None:
     return "+AND+".join(clauses) if clauses else None
 
 
+
 def main():
     parser = argparse.ArgumentParser(description="Ingestion openFDA Device Recalls (enforcement)")
     parser.add_argument("--start-date", help="Date de début (YYYY-MM-DD)")
@@ -108,22 +117,17 @@ def main():
     parser.add_argument("--status", help='Statut du recall (ex: "Ongoing", "Terminated")')
     parser.add_argument("--limit", type=int, default=1000, help="Nombre max d'enregistrements (0 = tout, prudence)")
     parser.add_argument("--api-key", default=None, help="Clé API openFDA (optionnelle)")
-    parser.add_argument("--output", default="fda_recall_export", help="Nom de fichier de sortie (sans extension)")
     parser.add_argument("--db", default=None, help="Chemin sqlite pour écrire aussi les records (optionnel)")
     args = parser.parse_args()
 
     search = build_search_query(args)
     records = client.fetch_all(BASE_URL, search, args.limit, args.api_key, extract_record)
 
-    out_dir = Path(__file__).parent.parent / "output"
-    out_dir.mkdir(exist_ok=True)
-    """
-    raise ValueError("dict contains fields not in fieldnames: "
-    ValueError: dict contains fields not in fieldnames: 'decision_code', 'applicant', 'decision_date'
-    """
-    csv_fields = FIELDS_OF_INTEREST + ["device_name", "device_class", "clearance_type"]
-    client.save_csv(records, out_dir / f"{args.output}.csv", csv_fields)
-    client.save_json(records, out_dir / f"{args.output}.json")
+    out_root = Path(__file__).parent.parent / "data" / "raw" / SOURCE_FOLDER
+    counts = client.write_partitioned(records, out_root, "records", DATE_FIELD)
+    for year, n in counts.items():
+        print(f"  {year}: {n} records -> {out_root / year}")
+    print(f"Total : {sum(counts.values())} records écrits dans {out_root}/<year>/")
 
     if args.db:
         conn = db.init_db(args.db)
