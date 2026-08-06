@@ -9,4 +9,5 @@ medtech.db-shm
 medtech.db-wal
 *.pyc
 *.txt
+/data
 
