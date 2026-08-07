@@ -1,31 +1,10 @@
 import pandas as pd
 import os 
+from aliases import alias_map
+import sys
+from pathlib import Path
 
-
-alias_map = {
-    # Boston Scientific
-    "BOSTON SCIENTIFIC CDIDINOSTIC TECHNOLOGIES": "BOSTON SCIENTIFIC",
-    "BOSTON SCIENTIFIC RP": "BOSTON SCIENTIFIC",
-    "BOSTON SCIENTIFIC RPORION": "BOSTON SCIENTIFIC",
-    "BOSTON SCIENTIFIC CORP": "BOSTON SCIENTIFIC",
-    "BOTT" : "BOTT",                                             
-    "BOTT LORORIES":"BOTT",                                    
-    "BOTT MEDIC":"BOTT",
-        
-    # Medtronic
-    "MEDTRONIC SOFAMOR DANEK": "MEDTRONIC",
-    "MEDTRONIC VASCULAR": "MEDTRONIC",
-    
-    # Johnson & Johnson / Ethicon
-    "ETHICON ENDO SURGERY": "ETHICON",
-    "ETHICON INC": "ETHICON",
-    
-    "PHILIPS HETH CE": "PHILIPS",
-    "PHILIPS HETHCE (SUZHOU)": "PHILIPS",
-    "PHILIPS MEDICSYSTEMS NEDERLD": "PHILIPS",
-    "PHILIPS MEDICSYSTEMS NEDERLDS": "PHILIPS",
-    "PHILIPS ULTROUND": "PHILIPS"
-}
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 RAW_DIR = "data/raw"
@@ -50,7 +29,10 @@ df['applicant'] = df['applicant'].str.replace(suffixes, '', regex=True)
 df['applicant'] = df['applicant'].str.strip(' .,')
 
 
-print(df['applicant'].value_counts().sort_index())
+df["applicant"] = df["applicant"].map(alias_map).fillna(df["applicant"])
+
+print(df['applicant'].value_counts().sort_index()[400:450]
+)
 
 
 ## grouper les noms qui on des similarité 
