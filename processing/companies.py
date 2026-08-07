@@ -31,8 +31,8 @@ df['applicant'] = df['applicant'].str.strip(' .,')
 
 df["applicant"] = df["applicant"].map(alias_map).fillna(df["applicant"])
 
-print(df['applicant'].value_counts().sort_index()[400:450]
-)
+print(df['applicant'].value_counts())
+
 
 
 ## grouper les noms qui on des similarité 
