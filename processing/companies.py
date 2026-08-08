@@ -4,6 +4,13 @@ from aliases import alias_map
 import sys
 from pathlib import Path
 
+
+"""
+normalisation et clean up et dedup des companies 
+préalable à la dedup des devices ensuite 
+
+"""
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
